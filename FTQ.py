@@ -26,11 +26,16 @@ def procesar_datos_completos(filepath):
     df_prod.columns = ['Fecha', 'Semana', 'Linea', 'Maquina', 'Version', 'OK', 'NOK', 'Div', 'FTQ_Orig', 'Pct']
     
     df_prod = df_prod.dropna(subset=['Fecha', 'Version'])
+    
+    # --- AQUÍ LIMPIAMOS LA VERSIÓN ---
+    df_prod['Version'] = df_prod['Version'].astype(str).str.replace(r'\.0$', '', regex=True)
+    
     df_prod['OK'] = pd.to_numeric(df_prod['OK'], errors='coerce').fillna(0)
     df_prod['NOK'] = pd.to_numeric(df_prod['NOK'], errors='coerce').fillna(0)
     df_prod['Fecha'] = pd.to_datetime(df_prod['Fecha'])
     df_prod['Semana'] = pd.to_numeric(df_prod['Semana'], errors='coerce').astype(int)
     
+    # Cálculo de FTQ multiplicando los factores por estación
     df_prod['Factor'] = df_prod.apply(lambda r: (1 - (r['NOK']/r['OK'])) if r['OK'] > 0 else 1.0, axis=1)
     df_ftq = df_prod.groupby(['Fecha', 'Semana', 'Version'])['Factor'].prod().reset_index()
     df_ftq['FTQ'] = df_ftq['Factor'] * 100
@@ -39,10 +44,13 @@ def procesar_datos_completos(filepath):
     df_def = df_raw.iloc[:, 12:19].copy()
     df_def.columns = ['Fecha', 'Semana', 'Linea', 'Maquina', 'Version', 'Defecto', 'Cantidad']
     df_def = df_def.dropna(subset=['Defecto', 'Cantidad'])
+    
+    # --- AQUÍ LIMPIAMOS LA VERSIÓN ---
+    df_def['Version'] = df_def['Version'].astype(str).str.replace(r'\.0$', '', regex=True)
+    
     df_def['Cantidad'] = pd.to_numeric(df_def['Cantidad'], errors='coerce').fillna(0)
     df_def['Fecha'] = pd.to_datetime(df_def['Fecha'])
     df_def['Semana'] = pd.to_numeric(df_def['Semana'], errors='coerce').fillna(0).astype(int)
-    
     df_def['Maquina'] = df_def['Maquina'].astype(str)
 
     return df_ftq, df_def
